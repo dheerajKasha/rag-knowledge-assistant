@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Knowledge Assistant</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="app-shell">
+    <section class="hero">
+        <p class="eyebrow">Enterprise AI Q&amp;A</p>
+        <h1>Document search with source-backed answers.</h1>
+        <p class="hero-copy">
+            Upload internal documents, index them, and ask natural-language questions with chunk-level citations.
+        </p>
+    </section>
+
+    <section class="workspace">
+        <article class="panel">
+            <div class="panel-header">
+                <h2>Upload document</h2>
+                <span class="panel-kicker">PDF, DOCX, TXT, MD</span>
+            </div>
+            <form id="upload-form" class="stack">
+                <label class="field">
+                    <span>Uploaded by</span>
+                    <input id="uploadedBy" name="uploadedBy" type="text" value="system" maxlength="100">
+                </label>
+                <label class="upload-drop">
+                    <input id="file" name="file" type="file" accept=".pdf,.docx,.txt,.md,.markdown" required>
+                    <span>Select a document</span>
+                    <small>Maximum size is controlled by Spring Boot multipart settings.</small>
+                </label>
+                <button type="submit" class="action">Upload and index</button>
+            </form>
+            <div id="upload-status" class="status" aria-live="polite"></div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-header">
+                <h2>Ask a question</h2>
+                <span class="panel-kicker">Citations included</span>
+            </div>
+            <form id="question-form" class="stack">
+                <label class="field">
+                    <span>User ID</span>
+                    <input id="userId" name="userId" type="text" value="analyst-1" maxlength="100">
+                </label>
+                <label class="field">
+                    <span>Question</span>
+                    <textarea id="question" name="question" rows="5" placeholder="What does the onboarding policy say about remote work?" required></textarea>
+                </label>
+                <label class="field">
+                    <span>Top results</span>
+                    <input id="maxResults" name="maxResults" type="number" min="1" max="10" value="5">
+                </label>
+                <button type="submit" class="action">Ask</button>
+            </form>
+        </article>
+    </section>
+
+    <section class="panel answer-panel">
+        <div class="panel-header">
+            <h2>Answer</h2>
+            <span class="panel-kicker">Live API response</span>
+        </div>
+        <div id="answer-empty" class="empty-state">Submit a question after indexing at least one document.</div>
+        <div id="answer-content" class="answer-content hidden">
+            <div class="meta-row">
+                <span id="query-id" class="meta-chip"></span>
+            </div>
+            <p id="answer-text" class="answer-text"></p>
+            <div>
+                <h3>Sources</h3>
+                <div id="citations" class="citations"></div>
+            </div>
+        </div>
+    </section>
+</main>
+<script src="/app.js" defer></script>
+</body>
+</html>
