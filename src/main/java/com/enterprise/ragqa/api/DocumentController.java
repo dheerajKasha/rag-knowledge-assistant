@@ -2,14 +2,17 @@ package com.enterprise.ragqa.api;
 
 import com.enterprise.ragqa.api.dto.AskQuestionRequest;
 import com.enterprise.ragqa.api.dto.AskQuestionResponse;
+import com.enterprise.ragqa.api.dto.DocumentSummaryDto;
 import com.enterprise.ragqa.api.dto.DocumentUploadResponse;
 import com.enterprise.ragqa.document.service.DocumentIngestionService;
 import com.enterprise.ragqa.qa.QuestionAnswerService;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,6 +37,11 @@ public class DocumentController {
     ) {
         this.documentIngestionService = documentIngestionService;
         this.questionAnswerService = questionAnswerService;
+    }
+
+    @GetMapping(path = "/documents", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<DocumentSummaryDto> listDocuments() {
+        return documentIngestionService.listDocuments();
     }
 
     @PostMapping(path = "/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

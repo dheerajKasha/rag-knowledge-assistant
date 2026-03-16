@@ -7,5 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DocumentChunkRepository extends JpaRepository<DocumentChunkRecord, UUID> {
 
+    long countByDocument_Id(UUID documentId);
+
     List<DocumentChunkRecord> findByDocument_Id(UUID documentId);
 }
