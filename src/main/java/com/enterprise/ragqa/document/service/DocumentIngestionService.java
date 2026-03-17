@@ -7,7 +7,7 @@ import com.enterprise.ragqa.document.model.DocumentRecord;
 import com.enterprise.ragqa.document.repository.DocumentChunkRepository;
 import com.enterprise.ragqa.document.repository.DocumentRepository;
 import com.enterprise.ragqa.embedding.EmbeddingClient;
-import com.enterprise.ragqa.embedding.EmbeddingSerializer;
+import com.enterprise.ragqa.embedding.VectorMapper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
@@ -146,7 +146,7 @@ public class DocumentIngestionService {
                     document,
                     chunk.chunkIndex(),
                     chunk.text(),
-                    EmbeddingSerializer.serialize(embeddingClient.embed(chunk.text())),
+                    VectorMapper.toFloatArray(embeddingClient.embed(chunk.text())),
                     chunk.pageStart(),
                     chunk.pageEnd(),
                     chunk.paragraphStart(),

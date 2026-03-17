@@ -33,7 +33,7 @@ class ExtractiveAnswerGeneratorTest {
                 document,
                 1,
                 "Remote work is allowed two days per week.",
-                "0.1,0.2",
+                new float[]{0.1f, 0.2f},
                 1,
                 1,
                 1,

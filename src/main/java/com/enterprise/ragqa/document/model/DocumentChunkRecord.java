@@ -8,6 +8,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import org.hibernate.annotations.Array;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "document_chunks")
@@ -26,8 +29,10 @@ public class DocumentChunkRecord {
     @Column(nullable = false, length = 4000)
     private String chunkText;
 
-    @Column(nullable = false, length = 12000)
-    private String embeddingJson;
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Array(length = 256)
+    @Column(nullable = false, columnDefinition = "vector(256)")
+    private float[] embedding;
 
     @Column(nullable = false)
     private int pageStart;
@@ -52,7 +57,7 @@ public class DocumentChunkRecord {
             DocumentRecord document,
             int chunkIndex,
             String chunkText,
-            String embeddingJson,
+            float[] embedding,
             int pageStart,
             int pageEnd,
             int paragraphStart,
@@ -63,7 +68,7 @@ public class DocumentChunkRecord {
         this.document = document;
         this.chunkIndex = chunkIndex;
         this.chunkText = chunkText;
-        this.embeddingJson = embeddingJson;
+        this.embedding = embedding;
         this.pageStart = pageStart;
         this.pageEnd = pageEnd;
         this.paragraphStart = paragraphStart;
@@ -87,8 +92,8 @@ public class DocumentChunkRecord {
         return chunkText;
     }
 
-    public String getEmbeddingJson() {
-        return embeddingJson;
+    public float[] getEmbedding() {
+        return embedding;
     }
 
     public int getPageStart() {

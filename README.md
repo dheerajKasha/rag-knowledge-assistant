@@ -128,4 +128,5 @@ cd ..
 - `POST /api/qa/ask` returns an answer with citations.
 - The UI is a React + TypeScript chat workspace with a knowledge-base upload panel.
 - Citations include the source document plus page and paragraph metadata.
+- Chunk embeddings are stored in Postgres as native `pgvector` columns and queried with vector similarity search.
 - Embeddings and answer generation are currently stubbed behind abstractions so a real OpenAI-compatible provider can replace them later.

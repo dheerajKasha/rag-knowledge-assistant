@@ -55,7 +55,7 @@ class QuestionAnswerServiceTest {
                 document,
                 0,
                 "Benefits are available after 30 days of employment.",
-                "0.1,0.2",
+                new float[]{0.1f, 0.2f},
                 12,
                 12,
                 4,
