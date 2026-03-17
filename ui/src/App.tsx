@@ -216,7 +216,7 @@ export default function App() {
     <div className="layout-shell">
       <aside className="knowledge-panel">
         <div className="brand-block">
-          <p className="eyebrow">DocIntel AI</p>
+          <p className="eyebrow">RAG Knowledge Assistant</p>
           <h1>Enterprise document intelligence with a chat-first workspace.</h1>
           <p className="supporting-copy">
             Add documents to the knowledge base, place them in the repo folder, and ask questions in a clean QA space.
@@ -307,7 +307,7 @@ export default function App() {
                 key={message.id}
                 className={`message-bubble ${message.role === "user" ? "user-bubble" : "assistant-bubble"} ${message.pending ? "pending-bubble" : ""}`}
               >
-                <p className="message-role">{message.role === "user" ? "You" : "DocIntel AI"}</p>
+                <p className="message-role">{message.role === "user" ? "You" : "Knowledge Assistant"}</p>
                 <p className="message-text">{message.text}</p>
                 {message.citations?.length ? (
                   <div className="citation-stack">
