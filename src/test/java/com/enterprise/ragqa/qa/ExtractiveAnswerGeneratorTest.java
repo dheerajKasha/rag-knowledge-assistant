@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.enterprise.ragqa.document.model.DocumentChunkRecord;
 import com.enterprise.ragqa.document.model.DocumentRecord;
+import com.enterprise.ragqa.document.service.DocumentSourceType;
 import com.enterprise.ragqa.search.SearchResult;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,6 +22,9 @@ class ExtractiveAnswerGeneratorTest {
                 "policy.txt",
                 "text/plain",
                 "tester",
+                null,
+                DocumentSourceType.UPLOAD,
+                "hash-1",
                 "Remote work is allowed two days per week.",
                 OffsetDateTime.now()
         );
@@ -30,6 +34,10 @@ class ExtractiveAnswerGeneratorTest {
                 1,
                 "Remote work is allowed two days per week.",
                 "0.1,0.2",
+                1,
+                1,
+                1,
+                1,
                 OffsetDateTime.now()
         );
 

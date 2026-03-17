@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties(AiProviderProperties.class)
+@EnableConfigurationProperties({AiProviderProperties.class, DocumentRepositoryProperties.class})
 public class AiConfiguration {
 
     @Bean

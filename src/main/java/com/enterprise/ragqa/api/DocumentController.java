@@ -2,14 +2,19 @@ package com.enterprise.ragqa.api;
 
 import com.enterprise.ragqa.api.dto.AskQuestionRequest;
 import com.enterprise.ragqa.api.dto.AskQuestionResponse;
+import com.enterprise.ragqa.api.dto.DocumentSummaryDto;
 import com.enterprise.ragqa.api.dto.DocumentUploadResponse;
+import com.enterprise.ragqa.api.dto.RefreshIndexResponse;
 import com.enterprise.ragqa.document.service.DocumentIngestionService;
+import com.enterprise.ragqa.document.service.RepositoryDocumentSyncService;
 import com.enterprise.ragqa.qa.QuestionAnswerService;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,14 +31,22 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentController {
 
     private final DocumentIngestionService documentIngestionService;
+    private final RepositoryDocumentSyncService repositoryDocumentSyncService;
     private final QuestionAnswerService questionAnswerService;
 
     public DocumentController(
             DocumentIngestionService documentIngestionService,
+            RepositoryDocumentSyncService repositoryDocumentSyncService,
             QuestionAnswerService questionAnswerService
     ) {
         this.documentIngestionService = documentIngestionService;
+        this.repositoryDocumentSyncService = repositoryDocumentSyncService;
         this.questionAnswerService = questionAnswerService;
+    }
+
+    @GetMapping(path = "/documents", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<DocumentSummaryDto> listDocuments() {
+        return documentIngestionService.listDocuments();
     }
 
     @PostMapping(path = "/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -42,6 +55,17 @@ public class DocumentController {
             @RequestParam(name = "uploadedBy", defaultValue = "system") String uploadedBy
     ) throws IOException {
         return documentIngestionService.ingest(file, uploadedBy);
+    }
+
+    @PostMapping(path = "/documents/refresh", produces = MediaType.APPLICATION_JSON_VALUE)
+    public RefreshIndexResponse refreshDocuments() throws IOException {
+        var result = repositoryDocumentSyncService.refreshRepositoryDocuments();
+        return new RefreshIndexResponse(
+                result.indexedCount(),
+                result.updatedCount(),
+                result.removedCount(),
+                repositoryDocumentSyncService.repositoryPath().toString()
+        );
     }
 
     @PostMapping(path = "/qa/ask", consumes = MediaType.APPLICATION_JSON_VALUE)

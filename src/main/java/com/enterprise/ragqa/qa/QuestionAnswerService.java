@@ -55,6 +55,10 @@ public class QuestionAnswerService {
                 chunk.getDocument().getId(),
                 chunk.getDocument().getFilename(),
                 chunk.getChunkIndex(),
+                chunk.getPageStart(),
+                chunk.getPageEnd(),
+                chunk.getParagraphStart(),
+                chunk.getParagraphEnd(),
                 abbreviate(chunk.getChunkText(), 240),
                 score
         );
@@ -74,11 +78,21 @@ public class QuestionAnswerService {
 
         String references = citations.stream()
                 .limit(3)
-                .map(citation -> "[" + citation.documentName() + " chunk " + citation.chunkIndex() + "]")
+                .map(this::citationLabel)
                 .distinct()
                 .reduce((left, right) -> left + " " + right)
                 .orElse("");
 
         return answer + " Sources: " + references;
+    }
+
+    private String citationLabel(CitationDto citation) {
+        String pagePart = citation.pageStart() == citation.pageEnd()
+                ? "p. " + citation.pageStart()
+                : "pp. " + citation.pageStart() + "-" + citation.pageEnd();
+        String paragraphPart = citation.paragraphStart() == citation.paragraphEnd()
+                ? "para. " + citation.paragraphStart()
+                : "paras. " + citation.paragraphStart() + "-" + citation.paragraphEnd();
+        return "[" + citation.documentName() + ", " + pagePart + ", " + paragraphPart + "]";
     }
 }
