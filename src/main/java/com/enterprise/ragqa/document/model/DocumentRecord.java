@@ -23,6 +23,15 @@ public class DocumentRecord {
     @Column(nullable = false)
     private String uploadedBy;
 
+    @Column
+    private String sourcePath;
+
+    @Column(nullable = false)
+    private String sourceType;
+
+    @Column
+    private String contentHash;
+
     @Column(nullable = false, length = 32000)
     private String extractedText;
 
@@ -32,11 +41,24 @@ public class DocumentRecord {
     protected DocumentRecord() {
     }
 
-    public DocumentRecord(UUID id, String filename, String contentType, String uploadedBy, String extractedText, OffsetDateTime createdAt) {
+    public DocumentRecord(
+            UUID id,
+            String filename,
+            String contentType,
+            String uploadedBy,
+            String sourcePath,
+            String sourceType,
+            String contentHash,
+            String extractedText,
+            OffsetDateTime createdAt
+    ) {
         this.id = id;
         this.filename = filename;
         this.contentType = contentType;
         this.uploadedBy = uploadedBy;
+        this.sourcePath = sourcePath;
+        this.sourceType = sourceType;
+        this.contentHash = contentHash;
         this.extractedText = extractedText;
         this.createdAt = createdAt;
     }
@@ -55,6 +77,18 @@ public class DocumentRecord {
 
     public String getUploadedBy() {
         return uploadedBy;
+    }
+
+    public String getSourcePath() {
+        return sourcePath;
+    }
+
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public String getContentHash() {
+        return contentHash;
     }
 
     public String getExtractedText() {

@@ -9,5 +9,7 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunkReco
 
     long countByDocument_Id(UUID documentId);
 
+    void deleteByDocument_Id(UUID documentId);
+
     List<DocumentChunkRecord> findByDocument_Id(UUID documentId);
 }

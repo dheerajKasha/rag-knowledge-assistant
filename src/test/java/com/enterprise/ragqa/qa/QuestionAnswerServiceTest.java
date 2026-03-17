@@ -10,6 +10,7 @@ import com.enterprise.ragqa.document.model.DocumentChunkRecord;
 import com.enterprise.ragqa.document.model.DocumentRecord;
 import com.enterprise.ragqa.document.model.QueryHistoryRecord;
 import com.enterprise.ragqa.document.repository.QueryHistoryRepository;
+import com.enterprise.ragqa.document.service.DocumentSourceType;
 import com.enterprise.ragqa.search.SearchResult;
 import com.enterprise.ragqa.search.SemanticSearchService;
 import java.time.OffsetDateTime;
@@ -43,6 +44,9 @@ class QuestionAnswerServiceTest {
                 "employee-handbook.pdf",
                 "application/pdf",
                 "tester",
+                null,
+                DocumentSourceType.UPLOAD,
+                "hash-1",
                 "Benefits are available after 30 days.",
                 OffsetDateTime.now()
         );
@@ -52,6 +56,10 @@ class QuestionAnswerServiceTest {
                 0,
                 "Benefits are available after 30 days of employment.",
                 "0.1,0.2",
+                12,
+                12,
+                4,
+                4,
                 OffsetDateTime.now()
         );
         List<SearchResult> searchResults = List.of(new SearchResult(chunk, 0.91));
@@ -65,9 +73,11 @@ class QuestionAnswerServiceTest {
 
         assertThat(response.answer()).contains("30 days");
         assertThat(response.answer()).contains("employee-handbook.pdf");
-        assertThat(response.answer()).contains("chunk 0");
+        assertThat(response.answer()).contains("p. 12");
+        assertThat(response.answer()).contains("para. 4");
         assertThat(response.citations()).hasSize(1);
         assertThat(response.citations().get(0).documentName()).isEqualTo("employee-handbook.pdf");
+        assertThat(response.citations().get(0).pageStart()).isEqualTo(12);
         verify(queryHistoryRepository).save(any(QueryHistoryRecord.class));
     }
 }

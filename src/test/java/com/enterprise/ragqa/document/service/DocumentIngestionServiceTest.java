@@ -34,6 +34,9 @@ class DocumentIngestionServiceTest {
     @Mock
     private DocumentChunkRepository documentChunkRepository;
 
+    @Mock
+    private DocumentHashingService documentHashingService;
+
     @Test
     void listsDocumentsWithChunkCounts() {
         DocumentRecord first = new DocumentRecord(
@@ -41,6 +44,9 @@ class DocumentIngestionServiceTest {
                 "policy.pdf",
                 "application/pdf",
                 "ops-user",
+                "repo/policy.pdf",
+                DocumentSourceType.REPOSITORY,
+                "hash-1",
                 "Policy content",
                 OffsetDateTime.now()
         );
@@ -49,6 +55,9 @@ class DocumentIngestionServiceTest {
                 "handbook.docx",
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 "hr-user",
+                null,
+                DocumentSourceType.UPLOAD,
+                "hash-2",
                 "Handbook content",
                 OffsetDateTime.now().minusDays(1)
         );
@@ -62,7 +71,8 @@ class DocumentIngestionServiceTest {
                 chunkingService,
                 embeddingClient,
                 documentRepository,
-                documentChunkRepository
+                documentChunkRepository,
+                documentHashingService
         );
 
         var documents = service.listDocuments();

@@ -30,6 +30,18 @@ public class DocumentChunkRecord {
     private String embeddingJson;
 
     @Column(nullable = false)
+    private int pageStart;
+
+    @Column(nullable = false)
+    private int pageEnd;
+
+    @Column(nullable = false)
+    private int paragraphStart;
+
+    @Column(nullable = false)
+    private int paragraphEnd;
+
+    @Column(nullable = false)
     private OffsetDateTime createdAt;
 
     protected DocumentChunkRecord() {
@@ -41,6 +53,10 @@ public class DocumentChunkRecord {
             int chunkIndex,
             String chunkText,
             String embeddingJson,
+            int pageStart,
+            int pageEnd,
+            int paragraphStart,
+            int paragraphEnd,
             OffsetDateTime createdAt
     ) {
         this.id = id;
@@ -48,6 +64,10 @@ public class DocumentChunkRecord {
         this.chunkIndex = chunkIndex;
         this.chunkText = chunkText;
         this.embeddingJson = embeddingJson;
+        this.pageStart = pageStart;
+        this.pageEnd = pageEnd;
+        this.paragraphStart = paragraphStart;
+        this.paragraphEnd = paragraphEnd;
         this.createdAt = createdAt;
     }
 
@@ -69,6 +89,22 @@ public class DocumentChunkRecord {
 
     public String getEmbeddingJson() {
         return embeddingJson;
+    }
+
+    public int getPageStart() {
+        return pageStart;
+    }
+
+    public int getPageEnd() {
+        return pageEnd;
+    }
+
+    public int getParagraphStart() {
+        return paragraphStart;
+    }
+
+    public int getParagraphEnd() {
+        return paragraphEnd;
     }
 
     public OffsetDateTime getCreatedAt() {

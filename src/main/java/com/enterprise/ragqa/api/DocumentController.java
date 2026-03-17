@@ -4,7 +4,9 @@ import com.enterprise.ragqa.api.dto.AskQuestionRequest;
 import com.enterprise.ragqa.api.dto.AskQuestionResponse;
 import com.enterprise.ragqa.api.dto.DocumentSummaryDto;
 import com.enterprise.ragqa.api.dto.DocumentUploadResponse;
+import com.enterprise.ragqa.api.dto.RefreshIndexResponse;
 import com.enterprise.ragqa.document.service.DocumentIngestionService;
+import com.enterprise.ragqa.document.service.RepositoryDocumentSyncService;
 import com.enterprise.ragqa.qa.QuestionAnswerService;
 import jakarta.validation.Valid;
 import java.io.IOException;
@@ -29,13 +31,16 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentController {
 
     private final DocumentIngestionService documentIngestionService;
+    private final RepositoryDocumentSyncService repositoryDocumentSyncService;
     private final QuestionAnswerService questionAnswerService;
 
     public DocumentController(
             DocumentIngestionService documentIngestionService,
+            RepositoryDocumentSyncService repositoryDocumentSyncService,
             QuestionAnswerService questionAnswerService
     ) {
         this.documentIngestionService = documentIngestionService;
+        this.repositoryDocumentSyncService = repositoryDocumentSyncService;
         this.questionAnswerService = questionAnswerService;
     }
 
@@ -50,6 +55,17 @@ public class DocumentController {
             @RequestParam(name = "uploadedBy", defaultValue = "system") String uploadedBy
     ) throws IOException {
         return documentIngestionService.ingest(file, uploadedBy);
+    }
+
+    @PostMapping(path = "/documents/refresh", produces = MediaType.APPLICATION_JSON_VALUE)
+    public RefreshIndexResponse refreshDocuments() throws IOException {
+        var result = repositoryDocumentSyncService.refreshRepositoryDocuments();
+        return new RefreshIndexResponse(
+                result.indexedCount(),
+                result.updatedCount(),
+                result.removedCount(),
+                repositoryDocumentSyncService.repositoryPath().toString()
+        );
     }
 
     @PostMapping(path = "/qa/ask", consumes = MediaType.APPLICATION_JSON_VALUE)

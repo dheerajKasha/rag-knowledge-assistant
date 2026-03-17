@@ -13,6 +13,10 @@ type Citation = {
   documentId: string;
   documentName: string;
   chunkIndex: number;
+  pageStart: number;
+  pageEnd: number;
+  paragraphStart: number;
+  paragraphEnd: number;
   excerpt: string;
   score: number;
 };
@@ -21,6 +25,13 @@ type AskResponse = {
   queryId: string;
   answer: string;
   citations: Citation[];
+};
+
+type RefreshIndexResponse = {
+  indexedCount: number;
+  updatedCount: number;
+  removedCount: number;
+  repositoryPath: string;
 };
 
 type Message = {
@@ -35,7 +46,7 @@ const startingMessages: Message[] = [
   {
     id: "welcome",
     role: "assistant",
-    text: "Upload a few documents into the knowledge base, then ask a question here. Answers will include source citations."
+    text: "Upload a few documents or place them in data/documents, then ask a question here. Answers include paper-style citations."
   }
 ];
 
@@ -48,6 +59,7 @@ export default function App() {
   const [uploadedBy, setUploadedBy] = useState("system");
   const [uploading, setUploading] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [refreshingIndex, setRefreshingIndex] = useState(false);
   const [knowledgeStatus, setKnowledgeStatus] = useState("Loading indexed documents...");
 
   const indexedCountLabel = useMemo(() => {
@@ -70,9 +82,34 @@ export default function App() {
 
       const payload = (await response.json()) as DocumentSummary[];
       setDocuments(payload);
-      setKnowledgeStatus(payload.length ? "Knowledge base is ready." : "Upload documents to start building the knowledge base.");
+      setKnowledgeStatus(payload.length ? "Knowledge base is ready." : "Upload documents or add them to data/documents.");
     } catch (error) {
       setKnowledgeStatus(error instanceof Error ? error.message : "Failed to load the knowledge base.");
+    }
+  }
+
+  async function refreshRepositoryIndex() {
+    setRefreshingIndex(true);
+    setKnowledgeStatus("Refreshing repository documents into the vector index...");
+
+    try {
+      const response = await fetch("/api/documents/refresh", {
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response));
+      }
+
+      const payload = (await response.json()) as RefreshIndexResponse;
+      setKnowledgeStatus(
+        `Repository refresh complete: ${payload.indexedCount} indexed, ${payload.updatedCount} updated, ${payload.removedCount} removed from ${payload.repositoryPath}.`
+      );
+      await refreshDocuments();
+    } catch (error) {
+      setKnowledgeStatus(error instanceof Error ? error.message : "Repository refresh failed.");
+    } finally {
+      setRefreshingIndex(false);
     }
   }
 
@@ -182,7 +219,7 @@ export default function App() {
           <p className="eyebrow">DocIntel AI</p>
           <h1>Enterprise document intelligence with a chat-first workspace.</h1>
           <p className="supporting-copy">
-            Add documents to the knowledge base, then ask questions in a clean, focused QA space.
+            Add documents to the knowledge base, place them in the repo folder, and ask questions in a clean QA space.
           </p>
         </div>
 
@@ -193,8 +230,17 @@ export default function App() {
               <p>{indexedCountLabel}</p>
             </div>
             <button className="ghost-button" type="button" onClick={() => void refreshDocuments()}>
-              Refresh
+              Refresh list
             </button>
+          </div>
+
+          <div className="repo-actions">
+            <button className="ghost-button" type="button" onClick={() => void refreshRepositoryIndex()} disabled={refreshingIndex}>
+              {refreshingIndex ? "Refreshing index..." : "Refresh repo documents"}
+            </button>
+            <p>
+              Place files in <code>data/documents</code>. Spring Boot scans that folder on startup, and this action reindexes it on demand.
+            </p>
           </div>
 
           <form className="upload-form" onSubmit={handleUpload}>
@@ -269,7 +315,7 @@ export default function App() {
                       <div className="citation-card" key={`${citation.documentId}-${citation.chunkIndex}`}>
                         <div className="citation-heading">
                           <strong>{citation.documentName}</strong>
-                          <span>Chunk {citation.chunkIndex}</span>
+                          <span>{formatCitationLocation(citation)}</span>
                         </div>
                         <p>{citation.excerpt}</p>
                       </div>
@@ -288,7 +334,7 @@ export default function App() {
               rows={4}
             />
             <div className="composer-footer">
-              <p>Answers include document-level and chunk-level citations.</p>
+              <p>Answers include document, page, and paragraph citations.</p>
               <button className="primary-button" type="submit" disabled={asking}>
                 {asking ? "Thinking..." : "Send"}
               </button>
@@ -307,6 +353,16 @@ function formatDate(value: string) {
     hour: "numeric",
     minute: "2-digit"
   });
+}
+
+function formatCitationLocation(citation: Citation) {
+  const pageLabel =
+    citation.pageStart === citation.pageEnd ? `p. ${citation.pageStart}` : `pp. ${citation.pageStart}-${citation.pageEnd}`;
+  const paragraphLabel =
+    citation.paragraphStart === citation.paragraphEnd
+      ? `para. ${citation.paragraphStart}`
+      : `paras. ${citation.paragraphStart}-${citation.paragraphEnd}`;
+  return `${pageLabel}, ${paragraphLabel}`;
 }
 
 async function readErrorMessage(response: Response) {
