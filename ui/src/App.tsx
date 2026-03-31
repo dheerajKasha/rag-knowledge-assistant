@@ -148,7 +148,9 @@ export default function App() {
 
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const fileInput = event.currentTarget.elements.namedItem("file") as HTMLInputElement | null;
+    // Capture form ref before any await — React nullifies currentTarget after the handler yields
+    const form = event.currentTarget;
+    const fileInput = form.elements.namedItem("file") as HTMLInputElement | null;
     if (!fileInput?.files?.length) {
       addToast("Choose a file to add to the knowledge base.", "info");
       return;
@@ -178,7 +180,7 @@ export default function App() {
       const msg = `Indexed ${payload.filename} with ${payload.chunksIndexed} chunks.`;
       setKnowledgeStatus(msg);
       addToast(msg, "success");
-      event.currentTarget.reset();
+      form.reset();
       await refreshDocuments();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Upload failed.";
