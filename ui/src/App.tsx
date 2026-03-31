@@ -65,6 +65,7 @@ export default function App() {
   const [maxResults, setMaxResults] = useState(5);
   const [uploadedBy, setUploadedBy] = useState("system");
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [asking, setAsking] = useState(false);
   const [refreshingIndex, setRefreshingIndex] = useState(false);
   const [knowledgeStatus, setKnowledgeStatus] = useState("Loading indexed documents...");
@@ -73,6 +74,10 @@ export default function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
+
+  /** Files above this size are sent via the chunked upload API. */
+  const CHUNKED_THRESHOLD_BYTES = 25 * 1024 * 1024; // 25 MB
+  const CHUNK_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB per chunk
 
   const indexedCountLabel = useMemo(() => {
     if (documentsLoading) return "Loading…";
@@ -150,19 +155,26 @@ export default function App() {
     }
 
     const file = fileInput.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-
     setUploading(true);
-    setKnowledgeStatus(`Indexing ${file.name}…`);
+    setUploadProgress(null);
 
     try {
-      const response = await fetch(
-        `/api/documents/upload?uploadedBy=${encodeURIComponent(uploadedBy || "system")}`,
-        { method: "POST", body: formData }
-      );
-      if (!response.ok) throw new Error(await readErrorMessage(response));
-      const payload = await response.json();
+      let payload: { filename: string; chunksIndexed: number };
+
+      if (file.size > CHUNKED_THRESHOLD_BYTES) {
+        payload = await uploadInChunks(file, uploadedBy || "system");
+      } else {
+        setKnowledgeStatus(`Indexing ${file.name}…`);
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch(
+          `/api/documents/upload?uploadedBy=${encodeURIComponent(uploadedBy || "system")}`,
+          { method: "POST", body: formData }
+        );
+        if (!response.ok) throw new Error(await readErrorMessage(response));
+        payload = await response.json();
+      }
+
       const msg = `Indexed ${payload.filename} with ${payload.chunksIndexed} chunks.`;
       setKnowledgeStatus(msg);
       addToast(msg, "success");
@@ -174,7 +186,60 @@ export default function App() {
       addToast(message, "error");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
+  }
+
+  async function uploadInChunks(
+    file: File,
+    uploadedByValue: string
+  ): Promise<{ filename: string; chunksIndexed: number }> {
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE_BYTES);
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+
+    setKnowledgeStatus(
+      `${file.name} is ${fileSizeMB} MB — uploading in ${totalChunks} chunks. This may take a moment for large files.`
+    );
+    setUploadProgress(0);
+
+    // Step 1: initiate session
+    const initiateResponse = await fetch(
+      `/api/documents/upload/session?filename=${encodeURIComponent(file.name)}&totalChunks=${totalChunks}`,
+      { method: "POST" }
+    );
+    if (!initiateResponse.ok) throw new Error(await readErrorMessage(initiateResponse));
+    const { sessionId } = (await initiateResponse.json()) as { sessionId: string };
+
+    // Step 2: send each chunk
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE_BYTES;
+      const end = Math.min(start + CHUNK_SIZE_BYTES, file.size);
+      const slice = file.slice(start, end);
+
+      const chunkForm = new FormData();
+      chunkForm.append("data", new Blob([await slice.arrayBuffer()]), file.name);
+
+      const chunkResponse = await fetch(
+        `/api/documents/upload/session/${sessionId}/chunk?chunkIndex=${i}`,
+        { method: "POST", body: chunkForm }
+      );
+      if (!chunkResponse.ok) throw new Error(await readErrorMessage(chunkResponse));
+
+      const pct = Math.round(((i + 1) / totalChunks) * 90);
+      setUploadProgress(pct);
+      setKnowledgeStatus(`Uploading ${file.name}: ${pct}% (chunk ${i + 1} of ${totalChunks})…`);
+    }
+
+    // Step 3: finalize
+    setKnowledgeStatus(`Processing ${file.name}…`);
+    setUploadProgress(95);
+    const finalizeResponse = await fetch(
+      `/api/documents/upload/session/${sessionId}/finalize?uploadedBy=${encodeURIComponent(uploadedByValue)}`,
+      { method: "POST" }
+    );
+    if (!finalizeResponse.ok) throw new Error(await readErrorMessage(finalizeResponse));
+    setUploadProgress(100);
+    return finalizeResponse.json();
   }
 
   // Drag-and-drop handlers
@@ -188,20 +253,17 @@ export default function App() {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-      const files = e.dataTransfer.files;
-      if (files.length && fileInputRef.current) {
-        const dt = new DataTransfer();
-        dt.items.add(files[0]);
-        fileInputRef.current.files = dt.files;
-        addToast(`${files[0].name} ready to index. Click "Add to knowledge base".`, "info");
-      }
-    },
-    []
-  );
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length && fileInputRef.current) {
+      const dt = new DataTransfer();
+      dt.items.add(files[0]);
+      fileInputRef.current.files = dt.files;
+      addToast(`${files[0].name} ready to index. Click "Add to knowledge base".`, "info");
+    }
+  }, []);
 
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -316,13 +378,20 @@ export default function App() {
                 onDrop={handleDrop}
               >
                 <span>{isDragging ? "Drop to select" : "Add file"}</span>
-                <small>PDF, DOCX, TXT, or Markdown · drag & drop or click</small>
+                <small>PDF, DOCX, TXT, or Markdown · drag & drop or click · files over 25 MB upload automatically in chunks</small>
                 <input ref={fileInputRef} name="file" type="file" accept=".pdf,.docx,.txt,.md,.markdown" />
               </label>
               <button className="primary-button" type="submit" disabled={uploading}>
-                {uploading ? "Indexing…" : "Add to knowledge base"}
+                {uploading ? "Uploading…" : "Add to knowledge base"}
               </button>
             </form>
+
+            {uploadProgress !== null && (
+              <div className="upload-progress">
+                <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }} />
+                <span className="upload-progress-label">{uploadProgress}%</span>
+              </div>
+            )}
 
             <p className="status-line">{knowledgeStatus}</p>
 
@@ -449,7 +518,9 @@ function formatDate(value: string) {
 
 function formatCitationLocation(citation: Citation) {
   const pageLabel =
-    citation.pageStart === citation.pageEnd ? `p. ${citation.pageStart}` : `pp. ${citation.pageStart}-${citation.pageEnd}`;
+    citation.pageStart === citation.pageEnd
+      ? `p. ${citation.pageStart}`
+      : `pp. ${citation.pageStart}-${citation.pageEnd}`;
   const paragraphLabel =
     citation.paragraphStart === citation.paragraphEnd
       ? `para. ${citation.paragraphStart}`
