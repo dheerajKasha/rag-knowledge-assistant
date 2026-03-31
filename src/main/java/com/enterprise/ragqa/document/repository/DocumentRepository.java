@@ -11,4 +11,6 @@ public interface DocumentRepository extends JpaRepository<DocumentRecord, UUID> 
     List<DocumentRecord> findBySourceType(String sourceType);
 
     Optional<DocumentRecord> findBySourceTypeAndSourcePath(String sourceType, String sourcePath);
+
+    Optional<DocumentRecord> findByContentHash(String contentHash);
 }

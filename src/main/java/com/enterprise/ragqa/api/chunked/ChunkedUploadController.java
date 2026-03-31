@@ -84,18 +84,16 @@ public class ChunkedUploadController {
     /**
      * Finalizes the session: assembles all chunks and ingests the document.
      *
-     * @param sessionId  the session ID
-     * @param uploadedBy user identifier stored with the document (default: {@code system})
+     * @param sessionId the session ID
      * @return standard {@link DocumentUploadResponse}
      */
     @PostMapping(path = "/{sessionId}/finalize", produces = MediaType.APPLICATION_JSON_VALUE)
     public DocumentUploadResponse finalizeUpload(
-            @PathVariable String sessionId,
-            @RequestParam(defaultValue = "system") String uploadedBy
+            @PathVariable String sessionId
     ) throws IOException {
         ChunkedUploadSession session = chunkedUploadService.finalizeSession(sessionId);
         byte[] assembled = session.assemble();
         AssembledMultipartFile file = new AssembledMultipartFile(session.getFilename(), assembled);
-        return documentIngestionService.ingest(file, uploadedBy);
+        return documentIngestionService.ingest(file);
     }
 }

@@ -33,7 +33,7 @@ public class QuestionAnswerService {
 
     @Transactional
     public AskQuestionResponse answer(AskQuestionRequest request) {
-        List<SearchResult> searchResults = semanticSearchService.search(request.question(), request.resolvedMaxResults());
+        List<SearchResult> searchResults = semanticSearchService.search(request.question(), 5);
         List<CitationDto> citations = searchResults.stream()
                 .map(result -> toCitation(result.chunk(), result.score()))
                 .toList();
@@ -41,7 +41,7 @@ public class QuestionAnswerService {
 
         QueryHistoryRecord query = queryHistoryRepository.save(new QueryHistoryRecord(
                 UUID.randomUUID(),
-                request.resolvedUserId(),
+                "system",
                 request.question(),
                 answer,
                 OffsetDateTime.now()

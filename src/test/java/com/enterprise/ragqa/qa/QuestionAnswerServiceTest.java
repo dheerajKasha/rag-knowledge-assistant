@@ -69,7 +69,7 @@ class QuestionAnswerServiceTest {
                 .thenReturn("Benefits start after 30 days of employment.");
         when(queryHistoryRepository.save(any(QueryHistoryRecord.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = questionAnswerService.answer(new AskQuestionRequest("When do benefits start?", "user-1", 5));
+        var response = questionAnswerService.answer(new AskQuestionRequest("When do benefits start?"));
 
         assertThat(response.answer()).contains("30 days");
         assertThat(response.answer()).contains("employee-handbook.pdf");

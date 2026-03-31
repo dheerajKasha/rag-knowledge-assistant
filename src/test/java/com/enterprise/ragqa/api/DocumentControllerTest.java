@@ -1,7 +1,6 @@
 package com.enterprise.ragqa.api;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -71,7 +70,7 @@ class DocumentControllerTest {
     @Test
     void uploadDocumentReturnsUploadResponse() throws Exception {
         UUID docId = UUID.randomUUID();
-        when(documentIngestionService.ingest(any(), eq("analyst-1")))
+        when(documentIngestionService.ingest(any()))
                 .thenReturn(new DocumentUploadResponse(docId, "notes.txt", 5));
 
         MockMultipartFile file = new MockMultipartFile(
@@ -79,8 +78,7 @@ class DocumentControllerTest {
         );
 
         mockMvc.perform(multipart("/api/documents/upload")
-                        .file(file)
-                        .param("uploadedBy", "analyst-1"))
+                        .file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.filename").value("notes.txt"))
                 .andExpect(jsonPath("$.chunksIndexed").value(5));
@@ -88,7 +86,7 @@ class DocumentControllerTest {
 
     @Test
     void uploadReturnsBadRequestForEmptyFile() throws Exception {
-        when(documentIngestionService.ingest(any(), any()))
+        when(documentIngestionService.ingest(any()))
                 .thenThrow(new IllegalArgumentException("Uploaded file is empty."));
 
         MockMultipartFile file = new MockMultipartFile(

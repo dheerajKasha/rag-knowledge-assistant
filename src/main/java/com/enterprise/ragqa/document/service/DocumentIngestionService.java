@@ -46,7 +46,7 @@ public class DocumentIngestionService {
     }
 
     @Transactional
-    public DocumentUploadResponse ingest(MultipartFile file, String uploadedBy) throws IOException {
+    public DocumentUploadResponse ingest(MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty.");
         }
@@ -57,13 +57,19 @@ public class DocumentIngestionService {
             throw new IllegalArgumentException("No readable text was extracted from the document.");
         }
 
+        String contentHash = documentHashingService.sha256(extractedContent.text());
+        documentRepository.findByContentHash(contentHash).ifPresent(existing -> {
+            throw new IllegalArgumentException(
+                    "This document has already been indexed (" + existing.getFilename() + ").");
+        });
+
         DocumentRecord document = persistDocument(
                 file.getOriginalFilename() == null ? "unknown" : file.getOriginalFilename(),
                 file.getContentType() == null ? "application/octet-stream" : file.getContentType(),
-                uploadedBy,
+                "system",
                 null,
                 DocumentSourceType.UPLOAD,
-                documentHashingService.sha256(extractedContent.text()),
+                contentHash,
                 extractedContent.text(),
                 chunks
         );

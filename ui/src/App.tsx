@@ -61,9 +61,6 @@ export default function App() {
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>(startingMessages);
   const [question, setQuestion] = useState("");
-  const [userId, setUserId] = useState("analyst-1");
-  const [maxResults, setMaxResults] = useState(5);
-  const [uploadedBy, setUploadedBy] = useState("system");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [asking, setAsking] = useState(false);
@@ -148,7 +145,8 @@ export default function App() {
 
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const fileInput = event.currentTarget.elements.namedItem("file") as HTMLInputElement | null;
+    const form = event.currentTarget;
+    const fileInput = form.elements.namedItem("file") as HTMLInputElement | null;
     if (!fileInput?.files?.length) {
       addToast("Choose a file to add to the knowledge base.", "info");
       return;
@@ -162,15 +160,12 @@ export default function App() {
       let payload: { filename: string; chunksIndexed: number };
 
       if (file.size > CHUNKED_THRESHOLD_BYTES) {
-        payload = await uploadInChunks(file, uploadedBy || "system");
+        payload = await uploadInChunks(file);
       } else {
         setKnowledgeStatus(`Indexing ${file.name}…`);
         const formData = new FormData();
         formData.append("file", file);
-        const response = await fetch(
-          `/api/documents/upload?uploadedBy=${encodeURIComponent(uploadedBy || "system")}`,
-          { method: "POST", body: formData }
-        );
+        const response = await fetch("/api/documents/upload", { method: "POST", body: formData });
         if (!response.ok) throw new Error(await readErrorMessage(response));
         payload = await response.json();
       }
@@ -178,7 +173,7 @@ export default function App() {
       const msg = `Indexed ${payload.filename} with ${payload.chunksIndexed} chunks.`;
       setKnowledgeStatus(msg);
       addToast(msg, "success");
-      event.currentTarget.reset();
+      form.reset();
       await refreshDocuments();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Upload failed.";
@@ -191,8 +186,7 @@ export default function App() {
   }
 
   async function uploadInChunks(
-    file: File,
-    uploadedByValue: string
+    file: File
   ): Promise<{ filename: string; chunksIndexed: number }> {
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE_BYTES);
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
@@ -234,7 +228,7 @@ export default function App() {
     setKnowledgeStatus(`Processing ${file.name}…`);
     setUploadProgress(95);
     const finalizeResponse = await fetch(
-      `/api/documents/upload/session/${sessionId}/finalize?uploadedBy=${encodeURIComponent(uploadedByValue)}`,
+      `/api/documents/upload/session/${sessionId}/finalize`,
       { method: "POST" }
     );
     if (!finalizeResponse.ok) throw new Error(await readErrorMessage(finalizeResponse));
@@ -297,7 +291,7 @@ export default function App() {
       const response = await fetch("/api/qa/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, question: trimmedQuestion, maxResults })
+        body: JSON.stringify({ question: trimmedQuestion })
       });
       if (!response.ok) throw new Error(await readErrorMessage(response));
       const payload = (await response.json()) as AskResponse;
@@ -367,10 +361,6 @@ export default function App() {
             </div>
 
             <form className="upload-form" onSubmit={handleUpload}>
-              <label className="field">
-                <span>Uploaded by</span>
-                <input value={uploadedBy} onChange={(e) => setUploadedBy(e.target.value)} />
-              </label>
               <label
                 className={`drop-zone${isDragging ? " drop-zone--active" : ""}`}
                 onDragOver={handleDragOver}
@@ -434,22 +424,6 @@ export default function App() {
             <div>
               <p className="eyebrow">QA Space</p>
               <h2>Ask questions like a conversation.</h2>
-            </div>
-            <div className="chat-controls">
-              <label className="compact-field">
-                <span>User</span>
-                <input value={userId} onChange={(e) => setUserId(e.target.value)} />
-              </label>
-              <label className="compact-field compact-number">
-                <span>Results</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={maxResults}
-                  onChange={(e) => setMaxResults(Number(e.target.value))}
-                />
-              </label>
             </div>
           </header>
 
